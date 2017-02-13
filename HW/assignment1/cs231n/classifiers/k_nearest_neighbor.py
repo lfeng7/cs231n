@@ -1,5 +1,15 @@
 import numpy as np
 
+# helper functions
+def find_most_frequent(arr):
+  """
+  Find the most find_most_frequent element 
+  Inputs: an int array
+  Outputs: an int
+  """
+  u, indices = np.unique(arr, return_inverse=True)
+  return u[np.argmax(np.bincount(indices))]
+
 class KNearestNeighbor(object):
   """ a kNN classifier with L2 distance """
 
@@ -64,6 +74,9 @@ class KNearestNeighbor(object):
     num_train = self.X_train.shape[0]
     dists = np.zeros((num_test, num_train))
     for i in xrange(num_test):
+      prog = i*1.0/num_test*100
+      if prog%10==0:
+        print 'progress %i %%, evt %i'%(prog,i);
       for j in xrange(num_train):
         #####################################################################
         # TODO:                                                             #
@@ -71,7 +84,7 @@ class KNearestNeighbor(object):
         # training point, and store the result in dists[i, j]. You should   #
         # not use a loop over dimension.                                    #
         #####################################################################
-        pass
+        dists[i,j] = np.linalg.norm(X[i]-self.X_train[j])
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -88,12 +101,15 @@ class KNearestNeighbor(object):
     num_train = self.X_train.shape[0]
     dists = np.zeros((num_test, num_train))
     for i in xrange(num_test):
+      prog = i*1.0/num_test*100
+      if prog%10==0:
+        print 'progress %i %%, evt %i'%(prog,i);
       #######################################################################
       # TODO:                                                               #
       # Compute the l2 distance between the ith test point and all training #
       # points, and store the result in dists[i, :].                        #
       #######################################################################
-      pass
+      dists[i] = np.linalg.norm(self.X_train - X[i],axis = 1)
       #######################################################################
       #                         END OF YOUR CODE                            #
       #######################################################################
@@ -121,7 +137,16 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    pass
+    # The idea is, (D)_ij = sqrt( sum((Xtest_ik-Xtrain_jk)**2) 
+    # = sqrt( sum_over_k(Xtest_ik**2+Xtrain_jk**2-2*Xtest_ik*Xtrain_jk))
+    # = sqrt( sum(A**2,row)i+sum(B**2,row)j-2(A*B.T)ij)
+    # Now, D is Rn*Rm, sum(A**2,row) is Rn, sum(B**2,row) is Rm, use broadcasring to 
+    # expand these two vector into matrix of R(n*m) makes the elementwise equation a matrix eq,
+    # D = sqrt( sum(A**2,row).broadcast+sum(B**2,row).T.broadcast - 2(A*B.T)))
+    A_ = np.matrix(np.square(X).sum(axis=1)).T
+    B_ = np.matrix(np.square(self.X_train).sum(axis=1))
+    C  = np.dot(X,self.X_train.T)
+    dists = np.sqrt(np.matrix(np.square(X).sum(axis=1)).T+np.matrix(np.square(self.X_train).sum(axis=1))-2*np.dot(X,self.X_train.T))
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
@@ -153,7 +178,9 @@ class KNearestNeighbor(object):
       # neighbors. Store these labels in closest_y.                           #
       # Hint: Look up the function numpy.argsort.                             #
       #########################################################################
-      pass
+      dist_index = np.argsort(dists[i])
+      knn_index = dist_index[0,0:k]
+      closest_y = self.y_train[knn_index]
       #########################################################################
       # TODO:                                                                 #
       # Now that you have found the labels of the k nearest neighbors, you    #
@@ -161,7 +188,8 @@ class KNearestNeighbor(object):
       # Store this label in y_pred[i]. Break ties by choosing the smaller     #
       # label.                                                                #
       #########################################################################
-      pass
+      y_pred[i] = find_most_frequent(closest_y)
+
       #########################################################################
       #                           END OF YOUR CODE                            # 
       #########################################################################
